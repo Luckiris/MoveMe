@@ -10,14 +10,33 @@ public Plugin myinfo =
 	name = "Move me to a team",
 	author = "Luckiris",
 	description = "Move the player to a team if the in game menu dosen't work",
-	version = "1.0",
+	version = "1.1",
 	url = "https://www.dream-community.de"
 };
 
 public void OnPluginStart()
 {
 	RegConsoleCmd("sm_moveme", CommandMoveMe, "Move the player to a team");
+	HookUserMessage(GetUserMessageId("VGUIMenu"), TeamMenuHook, true);
 }
+
+public Action TeamMenuHook(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init)
+{
+	/*	Moving the player joining to T team
+	
+	*/
+    char buffermsg[64];
+    
+    PbReadString(msg, "name", buffermsg, sizeof(buffermsg));
+    
+    if (StrEqual(buffermsg, "team", true))
+    {
+        int client = players[0];
+        CreateTimer(0.1, SwapMe, client);
+    }
+    
+    return Plugin_Continue;
+}  
 
 public Action CommandMoveMe(int client, int args)
 {
@@ -65,7 +84,12 @@ public Action CommandMoveMe(int client, int args)
 	return result;
 }
 
-public bool IsValidClient(int client)
+public Action SwapMe(Handle timer, any client)
+{
+	ChangeClientTeam(client, 2);
+}
+
+bool IsValidClient(int client)
 {
 	/*	Check if the client is in game, connected
 	
