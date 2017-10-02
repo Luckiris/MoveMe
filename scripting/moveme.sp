@@ -87,6 +87,7 @@ public Action CommandMoveMe(int client, int args)
 public Action SwapMe(Handle timer, any client)
 {
 	ChangeClientTeam(client, 2);
+	return Plugin_Handled;
 }
 
 bool IsValidClient(int client)
