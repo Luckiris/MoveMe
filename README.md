@@ -1,4 +1,4 @@
-[ANY] MoveMe [V 1.0]
+[CSGO] MoveMe [V 1.1]
 ===================
 
 Description
