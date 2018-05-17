@@ -2,103 +2,83 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <cstrike>
 
 #pragma newdecls required
 
-public Plugin myinfo = 
-{
-	name = "Move me to a team",
+/* Global cvars */
+int gCountT, gCountCT;
+
+public Plugin myinfo = {
+	name = "MoveMe",
 	author = "Luckiris",
-	description = "Move the player to a team if the in game menu dosen't work",
-	version = "1.1",
-	url = "https://www.dream-community.de"
+	description = "Move the player to a team if the in game menu dosen't work and/or by command",
+	version = "1.2",
+	url = "https://github.com/Luckiris"
 };
 
-public void OnPluginStart()
-{
-	RegConsoleCmd("sm_moveme", CommandMoveMe, "Move the player to a team");
+public void OnPluginStart(){
+	HookEvent("round_start", EventRoundStart);
 	HookUserMessage(GetUserMessageId("VGUIMenu"), TeamMenuHook, true);
+	RegConsoleCmd("sm_moveme", CommandMoveMe, "Move the player to a team");	
 }
 
-public Action TeamMenuHook(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init)
-{
-	/*	Moving the player joining to T team
-	
+public Action EventRoundStart(Event event, const char[] name, bool dontBroadcast){
+	gCountT = GetTeamClientCount(CS_TEAM_T);
+	gCountCT = GetTeamClientCount(CS_TEAM_CT);
+	return Plugin_Continue;
+}
+
+public Action TeamMenuHook(UserMsg msg_id, Protobuf msg, const int[] players, int playersNum, bool reliable, bool init){
+	/*	Moving the player joining to a team
 	*/
     char buffermsg[64];
-    
     PbReadString(msg, "name", buffermsg, sizeof(buffermsg));
-    
-    if (StrEqual(buffermsg, "team", true))
-    {
+    if (StrEqual(buffermsg, "team", true)){
         int client = players[0];
         CreateTimer(0.1, SwapMe, client);
     }
-    
     return Plugin_Continue;
 }  
 
 public Action CommandMoveMe(int client, int args)
 {
-	/*	We check if the client is valid then we check his team number
-	
-		IF team number > 1, the client is in CT or T
-		THEN we do nothing
-		ELSE we move him to T then CT (if needed)
-	
+	/*	Command will move the player to a team
 	*/
-	Action result = Plugin_Handled;
-	
-	if (IsValidClient(client))
-	{
-		int team = GetClientTeam(client);
-		
-		if (team > 1)
-		{
-			/* Already in a team */
-			PrintToChat(client, " \x01[\x04DREAM\x01] You are already in a team !");
-		}
-		else
-		{
-			ChangeClientTeam(client, 2);
-			/* Checking if the team change was succesful ... */
-			team = GetClientTeam(client);		
-			if (team != 2)
-			{
-				/* The first change failed so we trying to move to the other team ... */
-				ChangeClientTeam(client, 3);
-			}
-			if (team > 1)
-			{
-				/* Success */
-				PrintToChat(client, " \x01[\x04DREAM\x01] You are now in a team !");
-			}
-			else
-			{
-				/* Fail */
-				PrintToChat(client, " \x01[\x04DREAM\x01] Failed to move you ! Please reconnect to the server !");
-			}
-		}
-	}
-	
-	return result;
+
+	/* Just checking if the client is already in a team */
+	if (GetClientTeam(client) == CS_TEAM_CT || GetClientTeam(client) == CS_TEAM_T) return Plugin_Handled;
+
+	/* Getting the team */
+	ChangeClientTeam(client, GetTeamForChange());
+	return Plugin_Handled;	
 }
 
-public Action SwapMe(Handle timer, any client)
-{
-	ChangeClientTeam(client, 2);
+public Action SwapMe(Handle timer, any client){
+	/* Getting the team */
+	ChangeClientTeam(client, GetTeamForChange());
 	return Plugin_Handled;
 }
 
-bool IsValidClient(int client)
-{
-	/*	Check if the client is in game, connected
-	
+int GetTeamForChange(){
+	/*	This function check the numbers of players in each team
+		If a team has no players, then we move to the other team (COURSE MAP BEHAVIOUR)
+		For normal map, move the player to the first team which is unbalance
 	*/
-	bool valid = false;
-	if (client > 0 && client <= MAXPLAYERS && IsClientConnected(client) && IsClientInGame(client))
-	{
-		valid = true;
+
+	/* Update the counter just in case */
+	gCountT = GetTeamClientCount(CS_TEAM_T);
+	gCountCT = GetTeamClientCount(CS_TEAM_CT);
+
+	/* First case : course maps */
+	if (gCountT == 0 && gCountCT > 0) return CS_TEAM_CT;
+	else if (gCountCT == 0 && gCountT > 0) return CS_TEAM_T;
+
+	/* Second case : normal map */
+	if (gCountT > 0 && gCountCT > 0){
+		if (gCountT > gCountCT) return CS_TEAM_CT;
+		else if (gCountCT > gCountT) return CS_TEAM_T;
 	}
-	return valid;
+
+	return CS_TEAM_SPECTATOR;
 }
