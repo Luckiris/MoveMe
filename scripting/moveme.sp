@@ -78,6 +78,7 @@ int GetTeamForChange(){
 	if (gCountT > 0 && gCountCT > 0){
 		if (gCountT > gCountCT) return CS_TEAM_CT;
 		else if (gCountCT > gCountT) return CS_TEAM_T;
+		else return GetRandomInt(CS_TEAM_T, CS_TEAM_CT);
 	}
 
 	return CS_TEAM_SPECTATOR;
