@@ -56,7 +56,8 @@ public Action CommandMoveMe(int client, int args)
 
 public Action SwapMe(Handle timer, any client){
 	/* Getting the team */
-	ChangeClientTeam(client, GetTeamForChange());
+	int count = GetTeamClientCount(CS_TEAM_T) + GetTeamClientCount(CS_TEAM_CT);
+	if (count > 2) ChangeClientTeam(client, GetTeamForChange());
 	return Plugin_Handled;
 }
 
@@ -74,12 +75,5 @@ int GetTeamForChange(){
 	if (gCountT == 0 && gCountCT > 0) return CS_TEAM_CT;
 	else if (gCountCT == 0 && gCountT > 0) return CS_TEAM_T;
 
-	/* Second case : normal map */
-	if (gCountT > 0 && gCountCT > 0){
-		if (gCountT > gCountCT) return CS_TEAM_CT;
-		else if (gCountCT > gCountT) return CS_TEAM_T;
-		else return GetRandomInt(CS_TEAM_T, CS_TEAM_CT);
-	}
-
-	return CS_TEAM_SPECTATOR;
+	return GetRandomInt(CS_TEAM_T, CS_TEAM_CT);
 }
